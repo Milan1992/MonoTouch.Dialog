@@ -835,6 +835,29 @@ namespace MonoTouch.Dialog
 				cell.SelectionStyle = UITableViewCellSelectionStyle.Blue;
 			}
 			PrepareCell (cell);
+			
+			// It was important to get the right height for the cells if there was longer and shorter texts
+	                CGRect bounds = cell.Bounds;
+	                bounds.Height = this.GetHeight(tv);
+	                cell.Bounds = bounds;
+	
+			// The table row height must be updated
+	                tv.RowHeight = cell.Bounds.Height;
+			
+			/*
+			 * To use this you must implement something like this on the ViewController to recalculate the total
+			 * height of the table
+			 *
+			 * nfloat height = 0;
+			 * // if only StyledStringElements are in the section. (GetHeight should be implemented in all Element)
+            		 * foreach(StyledStringElement element in section.Elements)
+            		 * {
+        		 *     height += element.GetHeight(element.GetContainerTableView());
+    			 * }
+			 *
+            		 * root.TableView.ContentSize = new CGSize(root.TableView.ContentSize.Width, height);
+			 */
+			
 			return cell;
 		}
 		
@@ -2888,6 +2911,12 @@ namespace MonoTouch.Dialog
 				int selected = radio.Selected;
 				int current = 0;
 				
+				// Without reseting the DetailTextLabel.Text the cell will may contain false information 
+				// which was selected in a previous scenario. After recreating a RadioGroup and set selected
+				// item to -1 (so nothing selected) the previous selected item will be displayed while the new
+				// group doesent contain that.
+				cell.DetailTextLabel.Text = "";
+				
 				foreach (var s in Sections){
 					foreach (var e in s.Elements){
 						if (!(e is RadioElement))
@@ -2895,7 +2924,10 @@ namespace MonoTouch.Dialog
 						
 						if (current == selected){
 							cell.DetailTextLabel.Text = e.Summary ();
-							goto le;
+							
+							// Same result as goto, but clearer
+							cell.Accessory = UITableViewCellAccessory.DisclosureIndicator;
+							return cell;
 						}
 						current++;
 					}
@@ -2925,8 +2957,6 @@ namespace MonoTouch.Dialog
 					if (summaryElement < s.Elements.Count && cell.DetailTextLabel != null)
 						cell.DetailTextLabel.Text = s.Elements [summaryElement].Summary ();
 			} 
-		le:
-			cell.Accessory = UITableViewCellAccessory.DisclosureIndicator;
 			
 			return cell;
 		}
